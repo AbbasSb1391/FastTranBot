@@ -1,0 +1,576 @@
+import telebot
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from deep_translator import GoogleTranslator
+import jdatetime
+
+TOKEN = "you_bot_token"                # توکن ربات خود را وارد کنید
+ADMIN_CHAT_ID = "your_id"      # شناسه ادمین برای دریافت گزارش‌ها
+
+bot = telebot.TeleBot(TOKEN)
+
+# دیکشنری جامع زبان‌ها به همراه پرچم و نام فارسی
+LANGUAGES = {
+    "af": "🇿🇦 آفریکانس",
+    "sq": "🇦🇱 آلبانیایی",
+    "am": "🇪🇹 امهری",
+    "ar": "🇸🇦 عربی",
+    "hy": "🇦🇲 ارمنی",
+    "az": "🇦🇿 آذربایجانی",
+    "eu": "🇪🇸 باسکی",
+    "be": "🇧🇾 بلاروسی",
+    "bn": "🇧🇩 بنگالی",
+    "bs": "🇧🇦 بوسنیایی",
+    "bg": "🇧🇬 بلغاری",
+    "ca": "🇪🇸 کاتالانی",
+    "ceb": "🇵🇭 سیبوآنی",
+    "ny": "🇲🇼 چیچِا",
+    "zh-CN": "🇨🇳 چینی ساده‌شده",
+    "zh-TW": "🇹🇼 چینی سنتی",
+    "co": "🇫🇷 کورسیکایی",
+    "hr": "🇭🇷 کرواسی",
+    "cs": "🇨🇿 چکی",
+    "da": "🇩🇰 دانمارکی",
+    "nl": "🇳🇱 هلندی",
+    "en": "🇬🇧 انگلیسی",
+    "eo": "🇪🇺 اسپرنتو",
+    "et": "🇪🇪 استونیایی",
+    "tl": "🇵🇭 تاغالوگ",
+    "fi": "🇫🇮 فنلاندی",
+    "fr": "🇫🇷 فرانسوی",
+    "fy": "🇳🇱 فریزی",
+    "gl": "🇪🇸 گالیسیایی",
+    "ka": "🇬🇪 گرجی",
+    "de": "🇩🇪 آلمانی",
+    "el": "🇬🇷 یونانی",
+    "gu": "🇮🇳 گجراتی",
+    "ht": "🇭🇹 کریول هاییتی",
+    "ha": "🇳🇬 هوسی",
+    "haw": "🏝️ هاوایی",
+    "he": "🇮🇱 عبری",
+    "hi": "🇮🇳 هندی",
+    "hmn": "🇻🇳 هنگم",
+    "hu": "🇭🇺 مجاری",
+    "is": "🇮🇸 ایسلندی",
+    "ig": "🇳🇬 ایگبو",
+    "id": "🇮🇩 اندونزیایی",
+    "ga": "🇮🇪 ایرلندی",
+    "it": "🇮🇹 ایتالیایی",
+    "ja": "🇯🇵 ژاپنی",
+    "jw": "🇮🇩 جاوانی",
+    "kn": "🇮🇳 کانادا",  # در اینجا منظور زبان کانادا (یا Kannada) است.
+    "kk": "🇰🇿 قزاقی",
+    "km": "🇰🇭 خمری",
+    "ko": "🇰🇷 کره‌ای",
+    "ku": "🇹🇷 کردی",
+    "ky": "🇰🇬 قرقیزی",
+    "lo": "🇱🇦 لائویی",
+    "la": "🇻🇦 لاتین",
+    "lv": "🇱🇻 لتونی",
+    "lt": "🇱🇹 لیتوانیایی",
+    "lb": "🇱🇺 لوکزامبورگی",
+    "mk": "🇲🇰 مقدونی",
+    "mg": "🇲🇬 مالاگاسی",
+    "ms": "🇲🇾 مالایی",
+    "ml": "🇮🇳 مالایالام",
+    "mt": "🇲🇹 مالتی",
+    "mi": "🇳🇿 ماوری",
+    "mr": "🇮🇳 ماراتی",
+    "mn": "🇲🇳 مغولی",
+    "my": "🇲🇲 برمه‌ای",
+    "ne": "🇳🇵 نپالی",
+    "no": "🇳🇴 نروژی",
+    "ps": "🇦🇫 پشتو",
+    "fa": "🇮🇷 فارسی",
+    "pl": "🇵🇱 لهستانی",
+    "pt": "🇵🇹 پرتغالی",
+    "pa": "🇮🇳 پنجابی",
+    "ro": "🇷🇴 رومانیایی",
+    "ru": "🇷🇺 روسی",
+    "sm": "🇼🇸 سامویی",
+    "gd": "🇬🇧 گیلِک اسکاتلندی",
+    "sr": "🇷🇸 سربی",
+    "st": "🇱🇸 سثوتی",
+    "sn": "🇿🇼 شونا",
+    "sd": "🇵🇰 سندی",
+    "si": "🇱🇰 سینگالی",
+    "sk": "🇸🇰 اسلواکی",
+    "sl": "🇸🇮 اسلوونیایی",
+    "so": "🇸🇴 سومالی",
+    "es": "🇪🇸 اسپانیایی",
+    "su": "🇮🇩 سوندانی",
+    "sw": "🇰🇪 سواحلی",
+    "sv": "🇸🇪 سوئدی",
+    "tg": "🇹🇯 تاجیکی",
+    "ta": "🇮🇳 تامیلی",
+    "te": "🇮🇳 تلوگو",
+    "th": "🇹🇭 تایلندی",
+    "tr": "🇹🇷 ترکی",
+    "uk": "🇺🇦 اوکراینی",
+    "ur": "🇵🇰 اردو",
+    "uz": "🇺🇿 ازبکی",
+    "vi": "🇻🇳 ویتنامی",
+    "cy": "🏴 ویلزی",
+    "xh": "🇿🇦 خوسا",
+    "yi": "🇮🇱 ییدیش",
+    "yo": "🇳🇬 یوروبا",
+    "zu": "🇿🇦 زولو"
+}
+
+# تعداد زبان‌ها در هر صفحه
+LANGS_PER_PAGE = 10
+
+# برای گروه‌بندی، زبان‌ها پس از مرتب‌سازی بر اساس نام فارسی در یک لیست قرار می‌گیرند
+sorted_langs = sorted(LANGUAGES.items(), key=lambda x: x[1])
+
+# دیکشنری نگهداری جزئیات ترجمه‌های ارسال شده (برای رای‌دهی)
+translation_votes = {}
+
+# متغیرهای مدیریت وضعیت‌های کاربر
+selected_languages = {}        # { chat_id: {"source": ..., "target": ...} }
+translation_history = {}       # { chat_id: [(متن اصلی, ترجمه‌شده), ...] }
+translation_style = {}
+current_mode = {}              # { chat_id: "multi" یا None }
+multi_targets = {}             # { chat_id: [لیست زبان‌های انتخاب‌شده] }
+pending_report = {}
+
+##########################################
+# تابع ایجاد ایناین کیبورد رای‌دهی##########################################
+def create_vote_markup(msg_id):
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.row(
+        InlineKeyboardButton("👍🏻", callback_data=f"vote_up_{msg_id}"),
+        InlineKeyboardButton("👎🏻", callback_data=f"vote_down_{msg_id}")
+    )
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="start_translation"))
+    return markup
+
+##########################################
+# تابع ایجاد منوی انتخاب زبان تک‌زبانه (با صفحه‌بندی)
+##########################################
+def language_selection_panel(callback_prefix, back_callback, page=1):
+    markup = InlineKeyboardMarkup(row_width=1)
+    total = len(sorted_langs)
+    start_index = (page - 1) * LANGS_PER_PAGE
+    end_index = min(page * LANGS_PER_PAGE, total)
+    for code, lang in sorted_langs[start_index:end_index]:
+        markup.add(InlineKeyboardButton(lang, callback_data=f"{callback_prefix}_{code}"))
+    nav_buttons = []
+    if page > 1:
+        nav_buttons.append(InlineKeyboardButton("◀️ قبلی", callback_data=f"{callback_prefix}_page_{page-1}"))
+    if end_index < total:
+        nav_buttons.append(InlineKeyboardButton("▶️ بعدی", callback_data=f"{callback_prefix}_page_{page+1}"))
+    if nav_buttons:
+        markup.add(*nav_buttons)
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data=back_callback))
+    return markup
+
+##########################################
+# تابع ایجاد منوی انتخاب زبان چندزبانه (با صفحه‌بندی، دو ستونی)
+##########################################
+def multi_language_selection_panel(chat_id, page=1):
+    markup = InlineKeyboardMarkup(row_width=2)
+    total = len(sorted_langs)
+    start_index = (page - 1) * LANGS_PER_PAGE
+    end_index = min(page * LANGS_PER_PAGE, total)
+    for code, lang in sorted_langs[start_index:end_index]:
+        button_text = f"✅ {lang}" if code in multi_targets.get(chat_id, []) else lang
+        markup.add(InlineKeyboardButton(button_text, callback_data=f"multi_lang_{code}"))
+    nav_buttons = []
+    if page > 1:
+        nav_buttons.append(InlineKeyboardButton("◀️ قبلی", callback_data=f"multi_lang_page_{page-1}"))
+    if end_index < total:
+        nav_buttons.append(InlineKeyboardButton("▶️ بعدی", callback_data=f"multi_lang_page_{page+1}"))
+    if nav_buttons:
+        markup.add(*nav_buttons)
+    markup.add(InlineKeyboardButton("✅ تأیید", callback_data="multi_confirm"),
+               InlineKeyboardButton("🔙 بازگشت", callback_data="start_translation"))
+    return markup
+
+##########################################
+# هندلر صفحه‌بندی برای زبان‌های تک‌زبانه (source/target)
+##########################################
+@bot.callback_query_handler(func=lambda call: ("_page_" in call.data) and (call.data.startswith("source_lang") or call.data.startswith("target_lang")))
+def language_page_navigation(call):
+    parts = call.data.split("_")
+    page = int(parts[-1])
+    callback_prefix = "_".join(parts[:2])  # "source_lang" یا "target_lang"
+    new_markup = language_selection_panel(callback_prefix, "start_translation", page)
+    bot.edit_message_reply_markup(chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  reply_markup=new_markup)
+
+##########################################
+# هندلر صفحه‌بندی برای زبان‌های چندزبانه
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data.startswith("multi_lang_page_"))
+def multi_language_page_navigation(call):
+    parts = call.data.split("_")
+    page = int(parts[-1])
+    chat_id = call.message.chat.id
+    new_markup = multi_language_selection_panel(chat_id, page)
+    bot.edit_message_reply_markup(chat_id=chat_id,
+                                  message_id=call.message.message_id,
+                                  repl##########################################
+# منوی اصلی ربات
+##########################################
+def main_menu():
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        InlineKeyboardButton("🚀 شروع ربات مترجم", callback_data="start_translation"),
+        InlineKeyboardButton("ℹ️ راهنما", callback_data="help"),
+        InlineKeyboardButton("👤 سازنده", callback_data="creator_info")
+    )
+    return markup
+
+@bot.message_handler(commands=["start"])
+def send_welcome(message):
+    bot.send_message(message.chat.id,
+                     "🎉 خوش آمدید به ربات مترجم آنلاین! لطفاً یکی از گزینه‌ها را انتخاب کنید.",
+                     reply_markup=main_menu())
+
+##########################################
+# منوی مترجم (بعد از کلیک روی "🚀 شروع ربات مترجم")
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data == "start_translation")
+def start_translation(call):
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        InlineKeyboardButton("📝 ترجمه متن", callback_data="translate_text"),
+        InlineKeyboardButton("🌐 ترجمه چند زبانه", callback_data="multi_translation"),
+        InlineKeyboardButton("✏️ انتخاب سبک ترجمه", callback_data="choose_style"),
+        InlineKeyboardButton("🗄 تاریخچه ترجمه‌ها", callback_data="history"),
+        InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_main")
+    )
+    bot.edit_message_text("🌟 لطفاً یکی از گزینه‌های زیر را انتخاب کنید:",
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          reply_markup=markup)
+
+##########################################
+# دکمه "🔙 بازگشت" (برای تمامی صفحات به جز منوی اصلی)
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data == "back_to_main")
+def back_to_main(call):
+    bot.edit_message_text("🔙 بازگشت به منوی اصلی...",
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          reply_markup=main_menu())
+
+##########################################
+# انتخاب زبان (برای ترجمه تک‌زبانه)
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data == "translate_text")
+def request_text_translation(call):
+    bot.edit_message_text("📌 لطفاً زبان ورودی را انتخاب کنید:",
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          reply_markup=language_selection_panel("source_lang", "start_translation", page=1))
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("source_lang_") and "page" not in call.data)
+def set_source_language(call):
+    chat_id = call.message.chat.id
+    if chat_id not in selected_languages:
+        selected_languages[chat_id] = {}
+    selected_languages[chat_id]["source"] = call.data.split("_")[-1]
+    bot.edit_message_text("🌍 لطفاً زبان مقصد را انتخاب کنید:",
+                          chat_id=chat_id,
+                          message_id=call.message.message_id,
+                          reply_markup=language_selection_panel("target_lang", "start_translation", page=1))
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("target_lang_") and "page" not in call.data)
+def set_target_language(call):
+    chat_id = call.message.chat.id
+    if chat_id not in selected_languages:
+        selected_languages[chat_id] = {}
+    selected_languages[chat_id]["target"] = call.data.split("_")[-1]
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="start_translation"))
+    bot.edit_message_text("✍️ متن خود را ارسال کنید تا ترجمه شود.",
+                          chat_id=chat_id,
+                          message_id=call.message.message_id,
+                          reply_markup=markup)y_markup=new_markup) برای ترجمه
+                          ##########################################
+# دریافت متن و ترجمه (برای ترجمه تک‌زبانه و اضافه کردن رای‌دهی)
+##########################################
+@bot.message_handler(func=lambda message: message.text and message.chat.id not in pending_report)
+def handle_text(message):
+    chat_id = message.chat.id
+    # اگر حالت ترجمه چندزبانه است:
+    if current_mode.get(chat_id) == "multi":
+        target_codes = multi_targets.get(chat_id, [])
+        if not target_codes:
+            bot.send_message(chat_id, "❗ هیچ زبان مقصدی انتخاب نشده است. لطفاً از منوی ترجمه چند زبانه، زبان‌ها را انتخاب کنید.")
+            return
+        results = []
+        for code in target_codes:
+            try:
+                translated = GoogleTranslator(source="auto", target=code).translate(message.text)
+                results.append(f"{LANGUAGES.get(code, code)}: {translated}")
+            except Exception as e:
+                results.append(f"{LANGUAGES.get(code, code)}: خطا در ترجمه")
+        result_text = "🌐 ترجمه چند زبانه:\n" + "\n".join(results)
+        translation_history.setdefault(chat_id, []).append((message.text, results[0] if results else ""))
+        # ثبت انتخاب‌های چندزبانه قبل از پاکسازی
+        selected_targets = multi_targets.get(chat_id, []).copy()
+        sent_msg = bot.send_message(chat_id, result_text)
+        vote_kb = create_vote_markup(sent_msg.message_id)
+        bot.edit_message_reply_markup(chat_id, sent_msg.message_id, reply_markup=vote_kb)
+        # در صورت چندزبانه، برای نمایش می‌توانیم "multi" را ذخیره کنیم و لیست زبان‌های مقصد را به صورت رشته‌ای ذخیره کنیم
+        translation_votes[sent_msg.message_id] = (message.text, result_text, "multi", ", ".join(selected_targets))
+        current_mode[chat_id] = None
+        multi_targets[chat_id] = []
+    else:
+        source_lang = selected_languages.get(chat_id, {}).get("source", "auto")
+        target_lang = selected_languages.get(chat_id, {}).get("target", "en")
+        try:
+            translated_text = GoogleTranslator(source=source_lang, target=target_lang).translate(message.text)
+            translation_history.setdefault(chat_id, []).append((message.text, translated_text))
+            msg_text = f"🔹 ترجمه:\n{translated_text}"
+            sent_msg = bot.send_message(chat_id, msg_text)
+            vote_kb = create_vote_markup(sent_msg.message_id)
+            bot.edit_message_reply_markup(chat_id, sent_msg.message_id, reply_markup=vote_kb)
+            translation_votes[sent_msg.message_id] = (message.text, translated_text, source_lang, target_lang)
+        except Exception as e:
+            bot.send_message(chat_id, f"⚠️ خطا در ترجمه: {e}",
+                             reply_markup=InlineKeyboardMarkup().add(InlineKeyboardButton("🔙 بازگشت", callback_data="start_translation")))
+
+##########################################
+# ترجمه چند زبانه: منوی انتخاب زبان‌های مقصد (با صفحه‌بندی)
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data == "multi_translation")
+def multi_translation_menu(call):
+    chat_id = call.message.chat.id
+    multi_targets[chat_id] = []
+    bot.edit_message_text("🌐 لطفاً زبان‌های مقصد را از لیست زیر انتخاب کنید:\n(برای انتخاب چند زبان، روی هر دکمه کلیک کنید.)",
+                          chat_id=chat_id,
+                          message_id=call.message.message_id,
+                          reply_markup=multi_language_selection_panel(chat_id, page=1))
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("multi_lang_") and "page" not in call.data)
+def toggle_multi_language(call):
+    chat_id = call.message.chat.id
+    code = call.data.split("_")[-1]
+    if chat_id not in multi_targets:
+        multi_targets[chat_id] = []
+    if code in multi_targets[chat_id]:
+        multi_targets[chat_else:
+        multi_targets[chat_id].append(code)
+    new_markup = multi_language_selection_panel(chat_id, page=1)
+    bot.edit_message_reply_markup(chat_id=chat_id,
+                                  message_id=call.message.message_id,
+                                  reply_markup=new_markup)
+
+##########################################
+# تأیید انتخاب زبان‌های چندزبانه
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data == "multi_confirm")
+def multi_confirm(call):
+    chat_id = call.message.chat.id
+    if not multi_targets.get(chat_id):
+        bot.answer_callback_query(call.id, "❗ لطفاً حداقل یک زبان انتخاب کنید.", show_alert=True)
+        return
+    current_mode[chat_id] = "multi"
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="start_translation"))
+    bot.edit_message_text("🌐 لطفاً متن مورد نظر خود را ارسال کنید تا به زبان‌های انتخاب‌شده ترجمه شود.",
+                          chat_id=chat_id,
+                          message_id=call.message.message_id,
+                          reply_markup=markup)
+
+##########################################
+# انتخاب سبک ترجمه: دکمه‌های "رسمی 💼" و "غیررسمی 😄"
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data == "choose_style")
+def choose_style_page(call):
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton("رسمی 💼", callback_data="style_formal"))
+    markup.add(InlineKeyboardButton("غیررسمی 😄", callback_data="style_informal"))
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="start_translation"))
+    bot.edit_message_text("✏️ لطفاً سبک ترجمه را انتخاب کنید:",
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("style_"))
+def set_style(call):
+    style = call.data.split("_")[-1]
+    translation_style[call.message.chat.id] = style
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="start_translation"))
+    bot.edit_message_text(f"✅ سبک ترجمه به {'رسمی' if style=='formal' else 'غیررسمی'} تغییر یافت.",
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          reply_markup=markup)
+
+##########################################
+# تاریخچه ترجمه‌ها: نمایش آخرین ۵ ترجمه به صورت دکمه‌های اینلاین
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data == "history")
+def show_history(call):
+    chat_id = call.message.chat.id
+    history = translation_history.get(chat_id, [])
+    markup = InlineKeyboardMarkup(row_width=1)
+    if history:
+        for orig, trans in history[-5:]:
+            markup.add(InlineKeyboardButton(orig, callback_data=f"history_{trans}"))
+        text = "🗄 تاریخچه ترجمه‌ها:"
+    else:
+        text = "❗ تاریخچه ترجمه خالی است."
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="start_translation"))
+    bot.edit_message_text(text,
+                          chat_id=chat_id,
+                          message_id=call.message.message_id,
+                          reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("history_"))
+def show_translation_from_history(call):
+    trans_text = call.data.split("_", 1)[-1]
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="history"))
+    bot.edit_message_text(f"📜 ترجمه قبلی:\n{trans_text}",
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          reply_markup=m##########################################
+# سیستم رای‌دهی: هندلر رای (برای هر دو حالت ترجمه)
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data.startswith("vote_"))
+def handle_vote(call):
+    data_parts = call.data.split("_")
+    vote_type = data_parts[1]  # باید "up" یا "down" باشد
+    msg_id = int(data_parts[2])
+    if msg_id in translation_votes:
+        orig_text, translated_text, source_lang, target_lang = translation_votes[msg_id]
+    else:
+        orig_text, translated_text, source_lang, target_lang = ("نامشخص", "نامشخص", "نامشخص", "نامشخص")
+    user = call.from_user
+    user_fullname = user.first_name + (" " + user.last_name if user.last_name else "")
+    vote_emoji = "👍🏻" if vote_type == "up" else "👎🏻"
+    vote_msg = (
+        f"🗳 رای ترجمه جدید:\n\n"
+        f"👤 نام کاربر: {user_fullname}\n"
+        f"🆔 شناسه: {user.id}\n"
+        f"🌐 زبان مبدا: {source_lang}\n"
+        f"🌐 زبان مقصد: {target_lang}\n"
+        f"📝 متن اصلی: {orig_text}\n"
+        f"🔹 ترجمه: {translated_text}\n"
+        f"✅ رای: {vote_emoji}"
+    )
+    bot.send_message(ADMIN_CHAT_ID, vote_msg)
+    bot.answer_callback_query(call.id, "✅ رای شما ثبت شد!")
+    updated_markup = InlineKeyboardMarkup()
+    updated_markup.add(InlineKeyboardButton(f"{vote_emoji} (ثبت شد)", callback_data="none"))
+    updated_markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="start_translation"))
+    bot.edit_message_reply_markup(chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  reply_markup=updated_markup)
+
+##########################################
+# راهنما
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data == "help")
+def help_page(call):
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_main"))
+    help_text = (
+        "راهنمای استفاده از ربات مترجم\n\n"
+        "• شروع کار:\n"
+        "  - از منوی اصلی گزینه '🚀 شروع ربات مترجم' را انتخاب کنید.\n\n"
+        "• ترجمه متن:\n"
+        "  - ابتدا زبان ورودی و سپس زبان مقصد را با استفاده از صفحه‌بندی (گروه‌های ۱۰ تایی) انتخاب کنید و متن خود را ارسال نمایید.\n\n"
+        "• ترجمه چند زبانه:\n"
+        "  - زبان‌های مقصد را به صورت چند انتخابی (با صفحه‌بندی در گروه‌های ۱۰ تایی) انتخاب کنید و سپس متن را ارسال نمایید.\n\n"
+        "• انتخاب سبک ترجمه:\n"
+        "  - سبک رسمی (💼) یا غیررسمی (😄) را انتخاب کنید.\n\n"
+        "• تاریخچه ترجمه‌ها:\n"
+        "  - آخرین ۵ ترجمه شما به صورت دکمه نمایش داده می‌شود.\n\n"
+        "• سیستم رای‌دهی:\n"
+        "  - پس از ترجمه، روی دکمه‌های 👍🏻 و 👎🏻 رای دهید. رای شما به همراه اطلاعات کاربر برای ادمین ارسال می‌شود.\n\n"
+        "در تمامی صفحات، دکمه '🔙 بازگشت' شما را به منوی اصلی (🚀 شروع ربات مترجم) برمی‌گرداند."
+    )
+    bot.edit_message_text(help_text,
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          reply_markup=markup)
+
+##########################################
+# سازنده: نمایش اطلاعات سازنده و دکمه گزارش
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data == "creator_info")
+def creator_info(call):
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton("باگ‌ها و پیشنهادات 🐞💡", callback_data="report"))
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_main"))
+    creator_text = '🤖 این ربات توسط <a href="https://t.me/AbbasSb169">عباس ساکت باش</a> ساخته شده است!'
+    bot.edit_message_text(creator_text,
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          parse_mode="HTML",
+                          reply_markup=markup)arkup)id].remove(code)
+                          ##########################################
+# منوی گزارش
+##########################################
+@bot.callback_query_handler(func=lambda call: call.data == "report")
+def report_menu(call):
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton("باگ‌ها 🐞", callback_data="report_bug"))
+    markup.add(InlineKeyboardButton("پیشنهادات 💡", callback_data="report_sugg"))
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="creator_info"))
+    bot.edit_message_text("📣 لطفاً نوع گزارش خود را انتخاب کنید:",
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data == "report_bug")
+def report_bug(call):
+    pending_report[call.message.chat.id] = "bug"
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="creator_info"))
+    bot.edit_message_text("🐞 لطفاً باگ‌های خود را به صورت متنی ارسال کنید:",
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data == "report_sugg")
+def report_sugg(call):
+    pending_report[call.message.chat.id] = "suggestion"
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="creator_info"))
+    bot.edit_message_text("💡 لطفاً پیشنهادات خود را به صورت متنی ارسال کنید:",
+                          chat_id=call.message.chat.id,
+                          message_id=call.message.message_id,
+                          reply_markup=markup)
+
+##########################################
+# دریافت گزارش (باگ یا پیشنهاد)
+##########################################
+@bot.message_handler(func=lambda message: message.text and message.chat.id in pending_report)
+def handle_report(message):
+    chat_id = message.chat.id
+    report_type = pending_report.pop(chat_id)
+    now = jdatetime.datetime.now()
+    date_str = now.strftime("%Y/%m/%d")
+    time_str = now.strftime("%H:%M:%S")
+    user_fullname = message.from_user.first_name + (" " + message.from_user.last_name if message.from_user.last_name else "")
+    report_message = (
+        f"📝 گزارش جدید:\n\n"
+        f"👤 نام کاربر: {user_fullname}\n"
+        f"🆔 شناسه: {message.from_user.id}\n"
+        f"📅 تاریخ: {date_str}\n"
+        f"⏰ ساعت: {time_str}\n"
+        f"🔍 نوع گزارش: {'باگ' if report_type=='bug' else 'پیشنهاد'}\n"
+        f"🗒 متن گزارش:\n{message.text}"
+    )
+    bot.send_message(ADMIN_CHAT_ID, report_message)
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_main"))
+    bot.send_message(chat_id, "✅ پیام شما ارسال شد.", reply_markup=markup)
+
+print("✅ ربات مترجم آنلاین آماده اجرا است...")
+while True:
+    try:
+        bot.polling(none_stop=True, timeout=30)
+    except Exception as e:
+        print(f"⚠️ خطا رخ داد: {e}")
+
+
+
